@@ -1,0 +1,985 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Капельный кликер 💧 PRO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f1b40, #1a5f7a);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        h1 {
+            grid-column: 1 / -1;
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .main-game {
+            grid-column: 1;
+        }
+        
+        .side-panel {
+            grid-column: 2;
+        }
+        
+        .score-container {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        #score {
+            font-size: 4.2rem;
+            font-weight: bold;
+            color: #6df2ff;
+            text-shadow: 0 0 20px rgba(109, 242, 255, 0.6);
+        }
+        
+        .drop-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .drop-type {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            position: relative;
+        }
+        
+        .drop-type.active {
+            border-color: #ffeb3b;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 235, 59, 0.5);
+        }
+        
+        .drop-type-locked {
+            filter: grayscale(1) brightness(0.7);
+            cursor: not-allowed;
+        }
+        
+        .drop-type-locked::after {
+            content: '🔒';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.9rem;
+        }
+        
+        .basic-drop { background: linear-gradient(135deg, #4df0ff, #1e9fff); }
+        .rain-drop { background: linear-gradient(135deg, #36d1dc, #5b86e5); }
+        .storm-drop { background: linear-gradient(135deg, #8a2387, #f27121); }
+        .ocean-drop { background: linear-gradient(135deg, #007991, #78ffd6); }
+        .cosmic-drop { background: linear-gradient(135deg, #834d9b, #d04ed6); }
+        
+        .click-area {
+            width: 220px;
+            height: 220px;
+            margin: 25px auto;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .drop {
+            width: 100%;
+            height: 100%;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: relative;
+            box-shadow: 
+                inset 12px -12px 25px rgba(0, 40, 80, 0.4),
+                inset -12px 12px 25px rgba(255, 255, 255, 0.4),
+                0 0 35px rgba(109, 242, 255, 0.6);
+            animation: float 3.5s ease-in-out infinite;
+            transition: all 0.15s;
+        }
+        
+        .drop::after {
+            content: '';
+            position: absolute;
+            top: 22%;
+            left: 32%;
+            width: 16%;
+            height: 16%;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+        
+        .click-area:active .drop {
+            transform: scale(0.92);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 18px;
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a6fffb;
+        }
+        
+        .upgrades {
+            margin-top: 25px;
+        }
+        
+        .upgrade-btn {
+            background: linear-gradient(to right, #36d1dc, #5b86e5);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            box-shadow: 0 6px 18px rgba(54, 209, 220, 0.3);
+            width: 100%;
+        }
+        
+        .upgrade-btn:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(54, 209, 220, 0.4);
+        }
+        
+        .upgrade-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .achievements-panel {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .achievement {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .achievement.unlocked {
+            background: rgba(100, 255, 200, 0.12);
+            border-left-color: #4dffd6;
+        }
+        
+        .achievement-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        
+        .achievement-info h4 {
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .achievement-info p {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        
+        .achievement-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .achievement-progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #36d1dc, #5b86e5);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .save-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(100, 255, 200, 0.9);
+            color: #003322;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .save-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+        
+        @keyframes unlock {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); }
+        }
+        
+        .achievement.unlocked .achievement-icon {
+            animation: unlock 0.5s ease, glow 2s infinite;
+        }
+        
+        @media (max-width: 850px) {
+            .container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+            
+            .main-game, .side-panel {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💦 Капельный кликер PRO</h1>
+        
+        <div class="main-game">
+            <div class="score-container">
+                <div>Всего капель:</div>
+                <div id="score">0</div>
+                <div style="font-size: 0.9rem; color: #a6fffb; margin-top: 10px;">
+                    <span id="currentDropName">Базовая капля</span> 
+                    (<span id="dropMultiplier">1x</span>)
+                </div>
+            </div>
+            
+            <div class="drop-selector">
+                <div class="drop-type basic-drop active" data-type="basic" data-multiplier="1" data-unlocked="true">
+                    <div style="position: absolute; bottom: -25px; width: 100%; font-size: 0.8rem;">Базовая</div>
+                </div>
+                <div class="drop-type rain-drop" data-type="rain" data-multiplier="2" data-unlocked="false">
+                    <div style="position: absolute; bottom: -25px; width: 100%; font-size: 0.8rem;">Дождевая</div>
+                </div>
+                <div class="drop-type storm-drop" data-type="storm" data-multiplier="5" data-unlocked="false">
+                    <div style="position: absolute; bottom: -25px; width: 100%; font-size: 0.8rem;">Грозовая</div>
+                </div>
+                <div class="drop-type ocean-drop" data-type="ocean" data-multiplier="10" data-unlocked="false">
+                    <div style="position: absolute; bottom: -25px; width: 100%; font-size: 0.8rem;">Океанская</div>
+                </div>
+                <div class="drop-type cosmic-drop" data-type="cosmic" data-multiplier="25" data-unlocked="false">
+                    <div style="position: absolute; bottom: -25px; width: 100%; font-size: 0.8rem;">Космическая</div>
+                </div>
+            </div>
+            
+            <div class="click-area" id="clickArea">
+                <div class="drop" id="mainDrop"></div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div>Капель за клик</div>
+                    <div class="stat-value" id="perClick">1</div>
+                </div>
+                <div class="stat-box">
+                    <div>Кликов в секунду</div>
+                    <div class="stat-value" id="cps">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Всего кликов</div>
+                    <div class="stat-value" id="totalClicks">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Уровень</div>
+                    <div class="stat-value" id="level">1</div>
+                </div>
+            </div>
+            
+            <div class="upgrades">
+                <button class="upgrade-btn" id="upgradeClick">
+                    Улучшить клик (+1) - <span id="clickCost">50</span> капель
+                </button>
+                <button class="upgrade-btn" id="upgradeAutoClicker">
+                    Автокликер (1/сек) - <span id="autoClickerCost">200</span> капель
+                </button>
+                <button class="upgrade-btn" id="upgradeDropValue">
+                    Увеличить множитель капли (+0.5x) - <span id="dropValueCost">500</span> капель
+                </button>
+            </div>
+        </div>
+        
+        <div class="side-panel">
+            <h3>🏆 Достижения</h3>
+            <div class="achievements-panel" id="achievementsPanel">
+                <!-- Достижения будут добавлены через JS -->
+            </div>
+            
+            <div style="margin-top: 25px;">
+                <button class="upgrade-btn" id="saveGameBtn" style="background: linear-gradient(to right, #00b09b, #96c93d);">
+                    💾 Сохранить игру
+                </button>
+                <button class="upgrade-btn" id="resetGameBtn" style="background: linear-gradient(to right, #ff416c, #ff4b2b);">
+                    🗑️ Сбросить прогресс
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="save-notification" id="saveNotification">
+        Игра сохранена!
+    </div>
+
+    <script>
+        // ====================
+        // ИГРОВЫЕ ПЕРЕМЕННЫЕ
+        // ====================
+        let gameState = {
+            score: 0,
+            perClick: 1,
+            level: 1,
+            totalClicks: 0,
+            autoClickers: 0,
+            dropMultiplier: 1,
+            currentDropType: 'basic',
+            unlockedDrops: ['basic'],
+            achievements: {},
+            stats: {
+                totalEarned: 0,
+                timePlayed: 0,
+                maxCPS: 0
+            },
+            lastSave: Date.now()
+        };
+        
+        let lastClicks = [];
+        let achievements = [];
+        let dropTypes = {};
+        let autoClickInterval = null;
+        
+        // ====================
+        // ЭЛЕМЕНТЫ DOM
+        // ====================
+        const scoreElement = document.getElementById('score');
+        const perClickElement = document.getElementById('perClick');
+        const levelElement = document.getElementById('level');
+        const totalClicksElement = document.getElementById('totalClicks');
+        const cpsElement = document.getElementById('cps');
+        const clickArea = document.getElementById('clickArea');
+        const mainDrop = document.getElementById('mainDrop');
+        const dropMultiplierElement = document.getElementById('dropMultiplier');
+        const currentDropNameElement = document.getElementById('currentDropName');
+        const saveNotification = document.getElementById('saveNotification');
+        const achievementsPanel = document.getElementById('achievementsPanel');
+        
+        // ====================
+        // ИНИЦИАЛИЗАЦИЯ ИГРЫ
+        // ====================
+        function initGame() {
+            loadGame();
+            initDropTypes();
+            initAchievements();
+            updateDisplay();
+            setupEventListeners();
+            startAutoClickers();
+            startGameTimer();
+        }
+        
+        function initDropTypes() {
+            dropTypes = {
+                basic: { 
+                    name: 'Базовая капля', 
+                    multiplier: 1, 
+                    color: 'linear-gradient(135deg, #4df0ff, #1e9fff)',
+                    unlockRequirement: 0 
+                },
+                rain: { 
+                    name: 'Дождевая капля', 
+                    multiplier: 2, 
+                    color: 'linear-gradient(135deg, #36d1dc, #5b86e5)',
+                    unlockRequirement: 100 
+                },
+                storm: { 
+                    name: 'Грозовая капля', 
+                    multiplier: 5, 
+                    color: 'linear-gradient(135deg, #8a2387, #f27121)',
+                    unlockRequirement: 500 
+                },
+                ocean: { 
+                    name: 'Океанская капля', 
+                    multiplier: 10, 
+                    color: 'linear-gradient(135deg, #007991, #78ffd6)',
+                    unlockRequirement: 2000 
+                },
+                cosmic: { 
+                    name: 'Космическая капля', 
+                    multiplier: 25, 
+                    color: 'linear-gradient(135deg, #834d9b, #d04ed6)',
+                    unlockRequirement: 10000 
+                }
+            };
+        }
+        
+        function initAchievements() {
+            achievements = [
+                {
+                    id: 'first_click',
+                    name: 'Первая капля',
+                    description: 'Сделайте первый клик',
+                    icon: '💧',
+                    requirement: 1,
+                    type: 'clicks',
+                    reward: 50
+                },
+                {
+                    id: 'hundred_clicks',
+                    name: 'Настойчивость',
+                    description: 'Сделайте 100 кликов',
+                    icon: '🔥',
+                    requirement: 100,
+                    type: 'clicks',
+                    reward: 200
+                },
+                {
+                    id: 'thousand_clicks',
+                    name: 'Мастер клика',
+                    description: 'Сделайте 1,000 кликов',
+                    icon: '👑',
+                    requirement: 1000,
+                    type: 'clicks',
+                    reward: 1000
+                },
+                {
+                    id: 'first_upgrade',
+                    name: 'Первый шаг',
+                    description: 'Купите первое улучшение',
+                    icon: '⭐',
+                    requirement: 1,
+                    type: 'upgrades',
+                    reward: 100
+                },
+                {
+                    id: 'rain_unlock',
+                    name: 'Дождевик',
+                    description: 'Разблокируйте дождевую каплю',
+                    icon: '🌧️',
+                    requirement: 100,
+                    type: 'score',
+                    reward: 500
+                },
+                {
+                    id: 'storm_unlock',
+                    name: 'Громовержец',
+                    description: 'Разблокируйте грозовую каплю',
+                    icon: '⚡',
+                    requirement: 500,
+                    type: 'score',
+                    reward: 2000
+                },
+                {
+                    id: 'ocean_unlock',
+                    name: 'Повелитель волн',
+                    description: 'Разблокируйте океанскую каплю',
+                    icon: '🌊',
+                    requirement: 2000,
+                    type: 'score',
+                    reward: 5000
+                },
+                {
+                    id: 'cosmic_unlock',
+                    name: 'Космический странник',
+                    description: 'Разблокируйте космическую каплю',
+                    icon: '🚀',
+                    requirement: 10000,
+                    type: 'score',
+                    reward: 15000
+                },
+                {
+                    id: 'fast_clicker',
+                    name: 'Скорость света',
+                    description: 'Достигните 10 кликов в секунду',
+                    icon: '⚡',
+                    requirement: 10,
+                    type: 'cps',
+                    reward: 1500
+                },
+                {
+                    id: 'rich',
+                    name: 'Капельный магнат',
+                    description: 'Накопите 10,000 капель',
+                    icon: '💰',
+                    requirement: 10000,
+                    type: 'score',
+                    reward: 5000
+                }
+            ];
+            
+            // Инициализируем прогресс достижений
+            achievements.forEach(ach => {
+                if (!gameState.achievements[ach.id]) {
+                    gameState.achievements[ach.id] = {
+                        unlocked: false,
+                        progress: 0
+                    };
+                }
+            });
+            
+            renderAchievements();
+        }
+        
+        // ====================
+        // СОХРАНЕНИЕ/ЗАГРУЗКА
+        // ====================
+        function saveGame() {
+            gameState.lastSave = Date.now();
+            localStorage.setItem('dropClickerSave', JSON.stringify(gameState));
+            showSaveNotification();
+        }
+        
+        function loadGame() {
+            const saved = localStorage.getItem('dropClickerSave');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                Object.assign(gameState, loaded);
+            }
+        }
+        
+        function resetGame() {
+            if (confirm('Вы уверены? Весь прогресс будет потерян!')) {
+                localStorage.removeItem('dropClickerSave');
+                location.reload();
+            }
+        }
+        
+        function showSaveNotification() {
+            saveNotification.classList.add('show');
+            setTimeout(() => {
+                saveNotification.classList.remove('show');
+            }, 2000);
+        }
+        
+        // ====================
+        // ОБРАБОТЧИКИ СОБЫТИЙ
+        // ====================
+        function setupEventListeners() {
+            // Клик по капле
+            clickArea.addEventListener('click', handleClick);
+            
+            // Выбор типа капли
+            document.querySelectorAll('.drop-type').forEach(drop => {
+                drop.addEventListener('click', function() {
+                    if (this.classList.contains('drop-type-locked')) return;
+                    
+                    const type = this.dataset.type;
+                    selectDropType(type);
+                });
+            });
+            
+            // Улучшения
+            document.getElementById('upgradeClick').addEventListener('click', upgradeClick);
+            document.getElementById('upgradeAutoClicker').addEventListener('click', upgradeAutoClicker);
+            document.getElementById('upgradeDropValue').addEventListener('click', upgradeDropValue);
+            
+            // Управление игрой
+            document.getElementById('saveGameBtn').addEventListener('click', saveGame);
+            document.getElementById('resetGameBtn').addEventListener('click', resetGame);
+            
+            // Автосохранение при закрытии
+            window.addEventListener('beforeunload', saveGame);
+        }
+        
+        function handleClick(e) {
+            const baseGain = gameState.perClick * gameState.dropMultiplier;
+            const totalGain = Math.floor(baseGain);
+            
+            gameState.score += totalGain;
+            gameState.totalClicks++;
+            gameState.stats.totalEarned += totalGain;
+            
+            updateDisplay();
+            updateCPS();
+            checkAchievements();
+            checkDropUnlocks();
+            createClickEffect(e, totalGain);
+            saveGame();
+        }
+        
+        // ====================
+        // СИСТЕМА КАПЕЛЬ
+        // ====================
+        function selectDropType(type) {
+            if (!dropTypes[type]) return;
+            
+            gameState.currentDropType = type;
+            gameState.dropMultiplier = dropTypes[type].multiplier;
+            
+            // Обновляем визуал капли
+            mainDrop.style.background = dropTypes[type].color;
+            
+            // Обновляем активный выбор
+            document.querySelectorAll('.drop-type').forEach(d => {
+                d.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            
+            updateDisplay();
+        }
+        
+        function checkDropUnlocks() {
+            Object.entries(dropTypes).forEach(([type, data]) => {
+                if (!gameState.unlockedDrops.includes(type) && 
+                    gameState.stats.totalEarned >= data.unlockRequirement) {
+                    
+                    gameState.unlockedDrops.push(type);
+                    unlockDrop(type);
+                }
+            });
+        }
+        
+        function unlockDrop(type) {
+            const dropElement = document.querySelector(`[data-type="${type}"]`);
+            dropElement.classList.remove('drop-type-locked');
+            dropElement.dataset.unlocked = "true";
+            
+            // Показываем уведомление
+            alert(`🎉 Разблокирована новая капля: ${dropTypes[type].name}!`);
+        }
+        
+        // ====================
+        // СИСТЕМА ДОСТИЖЕНИЙ
+        // ====================
+        function checkAchievements() {
+            achievements.forEach(ach => {
+                if (gameState.achievements[ach.id].unlocked) return;
+                
+                let currentValue = 0;
+                switch(ach.type) {
+                    case 'clicks':
+                        currentValue = gameState.totalClicks;
+                        break;
+                    case 'score':
+                        currentValue = gameState.stats.totalEarned;
+                        break;
+                    case 'cps':
+                        currentValue = gameState.stats.maxCPS;
+                        break;
+                    case 'upgrades':
+                        currentValue = gameState.level - 1; // начальный уровень 1
+                        break;
+                }
+                
+                // Обновляем прогресс
+                const progress = Math.min(currentValue / ach.requirement * 100, 100);
+                gameState.achievements[ach.id].progress = progress;
+                
+                // Проверяем разблокировку
+                if (currentValue >= ach.requirement) {
+                    unlockAchievement(ach.id);
+                }
+            });
+            
+            renderAchievements();
+        }
+        
+        function unlockAchievement(achievementId) {
+            const ach = achievements.find(a => a.id === achievementId);
+            if (!ach || gameState.achievements[achievementId].unlocked) return;
+            
+            gameState.achievements[achievementId].unlocked = true;
+            gameState.score += ach.reward;
+            
+            // Показываем уведомление
+            alert(`🏆 Достижение разблокировано!\n\n${ach.icon} ${ach.name}\n${ach.description}\n\nНаграда: +${ach.reward} капель`);
+        }
+        
+        function renderAchievements() {
+            achievementsPanel.innerHTML = '';
+            
+            achievements.forEach(ach => {
+                const progress = gameState.achievements[ach.id].progress;
+                const unlocked = gameState.achievements[ach.id].unlocked;
+                
+                const achElement = document.createElement('div');
+                achElement.className = `achievement ${unlocked ? 'unlocked' : ''}`;
+                achElement.innerHTML = `
+                    <div class="achievement-icon">${ach.icon}</div>
+                    <div class="achievement-info">
+                        <h4>${ach.name}</h4>
+                        <p>${ach.description}</p>
+                        <div class="achievement-progress">
+                            <div class="achievement-progress-bar" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                achievementsPanel.appendChild(achElement);
+            });
+        }
+        
+        // ====================
+        // УЛУЧШЕНИЯ
+        // ====================
+        function upgradeClick() {
+            const cost = 50 * Math.pow(1.5, gameState.perClick - 1);
+            
+            if (gameState.score >= cost) {
+                gameState.score -= cost;
+                gameState.perClick++;
+                gameState.level++;
+                updateDisplay();
+                saveGame();
+            }
+        }
+        
+        function upgradeAutoClicker() {
+            const cost = 200 * Math.pow(2, gameState.autoClickers);
+            
+            if (gameState.score >= cost) {
+                gameState.score -= cost;
+                gameState.autoClickers++;
+                updateDisplay();
+                startAutoClickers();
+                saveGame();
+            }
+        }
+        
+        function upgradeDropValue() {
+            const cost = 500 * Math.pow(1.8, Math.floor(gameState.dropMultiplier * 2));
+            
+            if (gameState.score >= cost) {
+                gameState.score -= cost;
+                gameState.dropMultiplier += 0.5;
+                updateDisplay();
+                saveGame();
+            }
+        }
+        
+        // ====================
+        // АВТОКЛИКЕРЫ
+        // ====================
+        function startAutoClickers() {
+            if (autoClickInterval) {
+                clearInterval(autoClickInterval);
+            }
+            
+            autoClickInterval = setInterval(() => {
+                if (gameState.autoClickers > 0) {
+                    const gain = gameState.autoClickers * gameState.dropMultiplier;
+                    gameState.score += gain;
+                    gameState.stats.totalEarned += gain;
+                    updateDisplay();
+                    
+                    // Создаем эффект автоклика
+                    createAutoClickEffect(gain);
+                }
+            }, 1000);
+        }
+        
+        // ====================
+        // ОТОБРАЖЕНИЕ
+        // ====================
+        function updateDisplay() {
+            scoreElement.textContent = Math.floor(gameState.score).toLocaleString();
+            perClickElement.textContent = gameState.perClick;
+            levelElement.textContent = gameState.level;
+            totalClicksElement.textContent = gameState.totalClicks.toLocaleString();
+            dropMultiplierElement.textContent = gameState.dropMultiplier.toFixed(1) + 'x';
+            
+            const currentDrop = dropTypes[gameState.currentDropType];
+            currentDropNameElement.textContent = currentDrop.name;
+            
+            // Обновляем стоимость улучшений
+            document.getElementById('clickCost').textContent = 
+                Math.floor(50 * Math.pow(1.5, gameState.perClick - 1));
+            document.getElementById('autoClickerCost').textContent = 
+                Math.floor(200 * Math.pow(2, gameState.autoClickers));
+            document.getElementById('dropValueCost').textContent = 
+                Math.floor(500 * Math.pow(1.8, Math.floor(gameState.dropMultiplier * 2)));
+            
+            // Обновляем статус разблокировки капель
+            document.querySelectorAll('.drop-type').forEach(drop => {
+                const type = drop.dataset.type;
+                const unlocked = gameState.unlockedDrops.includes(type);
+                drop.dataset.unlocked = unlocked;
+                drop.classList.toggle('drop-type-locked', !unlocked);
+            });
+        }
+        
+        function updateCPS() {
+            const now = Date.now();
+            lastClicks.push(now);
+            
+            // Удаляем старые клики
+            lastClicks = lastClicks.filter(time => now - time < 1000);
+            
+            const cps = lastClicks.length;
+            cpsElement.textContent = cps;
+            
+            // Обновляем максимальный CPS
+            if (cps > gameState.stats.maxCPS) {
+                gameState.stats.maxCPS = cps;
+            }
+        }
+        
+        // ====================
+        // ВИЗУАЛЬНЫЕ ЭФФЕКТЫ
+        // ====================
+        function createClickEffect(e, gain) {
+            // Создаем летящее число
+            const flyNum = document.createElement('div');
+            flyNum.textContent = `+${gain}`;
+            flyNum.style.position = 'fixed';
+            flyNum.style.left = `${e.clientX}px`;
+            flyNum.style.top = `${e.clientY}px`;
+            flyNum.style.color = '#6df2ff';
+            flyNum.style.fontWeight = 'bold';
+            flyNum.style.fontSize = '1.8rem';
+            flyNum.style.textShadow = '0 0 8px rgba(109, 242, 255, 0.9)';
+            flyNum.style.pointerEvents = 'none';
+            flyNum.style.zIndex = '10000';
+            document.body.appendChild(flyNum);
+            
+            // Анимация полёта
+            const flyX = (Math.random() - 0.5) * 120;
+            flyNum.animate([
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${flyX}px, -80px) scale(0.7)`, opacity: 0 }
+            ], {
+                duration: 1000,
+                easing: 'cubic-bezier(0.2, 0.8, 0.8, 1)'
+            });
+            
+            // Удаление через 1 секунду
+            setTimeout(() => flyNum.remove(), 1000);
+        }
+        
+        function createAutoClickEffect(gain) {
+            // Создаем эффект автоклика
+            const autoEffect = document.createElement('div');
+            autoEffect.textContent = `+${gain.toFixed(1)}`;
+            autoEffect.style.position = 'fixed';
+            autoEffect.style.right = '30px';
+            autoEffect.style.bottom = '30px';
+            autoEffect.style.color = '#ffeb3b';
+            autoEffect.style.fontWeight = 'bold';
+            autoEffect.style.fontSize = '1.2rem';
+            autoEffect.style.textShadow = '0 0 6px rgba(255, 235, 59, 0.8)';
+            autoEffect.style.pointerEvents = 'none';
+            autoEffect.style.zIndex = '10000';
+            document.body.appendChild(autoEffect);
+            
+            // Анимация
+            autoEffect.animate([
+                { transform: 'translateY(0) scale(1)', opacity: 1 },
+                { transform: 'translateY(-40px) scale(0.8)', opacity: 0 }
+            ], {
+                duration: 1500,
+                easing: 'ease-out'
+            });
+            
+            // Удаление
+            setTimeout(() => autoEffect.remove(), 1500);
+        }
+        
+        // ====================
+        // ТАЙМЕР ИГРЫ
+        // ====================
+        function startGameTimer() {
+            setInterval(() => {
+                gameState.stats.timePlayed++;
+                // Автосохранение каждые 30 секунд
+                if (gameState.stats.timePlayed % 30 === 0) {
+                    saveGame();
+                }
+            }, 1000);
+        }
+        
+        // ====================
+        // ЗАПУСК ИГРЫ
+        // ====================
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
+```
